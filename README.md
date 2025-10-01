@@ -52,7 +52,8 @@ We try our best to maintain backwards compatibility of our plugin with previous 
 | React Native version(s) | Supporting CodePush version(s)                                                                       |
 |-------------------------|------------------------------------------------------------------------------------------------------|
 | <v0.76                  | **Consider [microsoft/code-push-react-native](https://github.com/microsoft/react-native-code-push)** |
-| v0.76, v0.77, 0.78      | v10.0+ *(Available for Old/New Architecture)*                                                        |
+| v0.76, v0.77, 0.78, 0.79| v10.0+ *(Available for Old/New Architecture)*                                                        |
+| v0.80                   | v10.1+ *(Available for Old/New Architecture)*                                                        |
 
 
 
@@ -219,6 +220,37 @@ MyApp = codePush(codePushOptions)(MyApp);
 If you would like to display an update confirmation dialog (an "active install"), configure when an available update is installed (like force an immediate restart) or customize the update experience in any other way, refer to the [`codePush()`](docs/api-js.md#codepush) API reference for information on how to tweak this default behavior.
 
 *NOTE: If you are using [Redux](http://redux.js.org) and [Redux Saga](https://redux-saga.js.org/), you can alternatively use the [react-native-code-push-saga](http://github.com/lostintangent/react-native-code-push-saga) module, which allows you to customize when `sync` is called in a perhaps simpler/more idiomatic way.*
+
+### For expo user with CNG(Continuous Native Generation)
+```json 
+// app.json
+    "expo": {
+        // ...
+        "plugins": [
+      [
+        "@code-push-next/react-native-code-push/expo",
+        {
+          "ios": {
+            "CodePushDeploymentKey": "deployment key",
+            "CodePushServerURL": "server url"
+          },
+          "android": {
+            "CodePushDeploymentKey": "deployment key",
+            "CodePushServerURL": "server url "
+          }
+        }
+      ],
+    ]
+    }
+```
+
+Currently, code-push-cli doesn't support expo-cli build. To make it work, you need to make metro.config.js on root directory.  
+```
+npx expo customize metro.config.js
+```
+
+https://docs.expo.dev/guides/customizing-metro/#customizing
+
 
 ### Store Guideline Compliance
 
