@@ -217,31 +217,9 @@ public class CodePushUpdateUtils {
 
         // The JSON serialization turns path separators into "\/", e.g. "CodePush\/assets\/image.png"
         String updateContentsManifestString = updateContentsJSONArray.toString().replace("\\/", "/");
-        
-        CodePushUtils.log("=== MANIFEST COMPARISON DEBUG ===");
-        CodePushUtils.log("Manifest string length: " + updateContentsManifestString.length());
-        CodePushUtils.log("Manifest entries count: " + updateContentsManifest.size());
-        CodePushUtils.log("First 500 chars: " + updateContentsManifestString.substring(0, Math.min(500, updateContentsManifestString.length())));
-        
-        // Write full manifest to file for debugging
-        try {
-            java.io.File manifestDebugFile = new java.io.File(folderPath + "_manifest_debug.txt");
-            java.io.FileWriter writer = new java.io.FileWriter(manifestDebugFile);
-            writer.write(updateContentsManifestString);
-            writer.close();
-            CodePushUtils.log("Full manifest written to: " + manifestDebugFile.getAbsolutePath());
-        } catch (Exception e) {
-            CodePushUtils.log("Failed to write manifest debug file: " + e.getMessage());
-        }
         CodePushUtils.log("Manifest string: " + updateContentsManifestString);
 
-        String updateContentsManifestHash;
-        try {
-            updateContentsManifestHash = computeHash(new ByteArrayInputStream(updateContentsManifestString.getBytes("UTF-8")));
-        } catch (java.io.UnsupportedEncodingException e) {
-            // UTF-8 is always supported
-            throw new CodePushInvalidUpdateException("UTF-8 encoding not supported: " + e.getMessage());
-        }
+        String updateContentsManifestHash = computeHash(new ByteArrayInputStream(updateContentsManifestString.getBytes("UTF-8")));
         
         CodePushUtils.log("=== MANIFEST HASH CALCULATION ===");
         CodePushUtils.log("Computed manifest hash: " + updateContentsManifestHash);

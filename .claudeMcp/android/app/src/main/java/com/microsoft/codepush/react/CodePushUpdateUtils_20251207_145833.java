@@ -72,7 +72,7 @@ public class CodePushUpdateUtils {
         }
     }
 
-    public static String computeHash(InputStream dataStream) {
+    private static String computeHash(InputStream dataStream) {
         MessageDigest messageDigest = null;
         DigestInputStream digestInputStream = null;
         try {
@@ -100,57 +100,24 @@ public class CodePushUpdateUtils {
         return String.format("%064x", new java.math.BigInteger(1, hash));
     }
 
-    public static void copyNecessaryFilesFromCurrentPackage(String diffManifestFilePath, String currentPackageFolderPath, String newPackageFolderPath, String patchFolderPath) throws IOException {
+    public static void copyNecessaryFilesFromCurrentPackage(String diffManifestFilePath, String currentPackageFolderPath, String newPackageFolderPath) throws IOException {
         if (currentPackageFolderPath == null || !new File(currentPackageFolderPath).exists()) {
             CodePushUtils.log("Unable to copy files from current package during diff update, because currentPackageFolderPath is invalid.");
             return;
         }
-        
-        // Copy all files from current package
         FileUtils.copyDirectoryContents(currentPackageFolderPath, newPackageFolderPath);
-        
-        // Read manifest
         JSONObject diffManifest = CodePushUtils.getJsonObjectFromFile(diffManifestFilePath);
-        
         try {
-            // Handle deleted files
             JSONArray deletedFiles = diffManifest.getJSONArray("deletedFiles");
             for (int i = 0; i < deletedFiles.length(); i++) {
                 String fileNameToDelete = deletedFiles.getString(i);
                 File fileToDelete = new File(newPackageFolderPath, fileNameToDelete);
                 if (fileToDelete.exists()) {
-                    CodePushUtils.log("Deleting file: " + fileNameToDelete);
                     fileToDelete.delete();
                 }
             }
-            
-            // Handle modified files (apply .patch files)
-            JSONArray modifiedFiles = diffManifest.getJSONArray("modifiedFiles");
-            for (int i = 0; i < modifiedFiles.length(); i++) {
-                String modifiedFile = modifiedFiles.getString(i);
-                String patchFileName = modifiedFile + ".patch";
-                
-                File oldFile = new File(newPackageFolderPath, modifiedFile);
-                File patchFile = new File(patchFolderPath, patchFileName);
-                
-                if (patchFile.exists() && oldFile.exists()) {
-                    // Apply bspatch
-                    File tempFile = new File(newPackageFolderPath, modifiedFile + ".tmp");
-                    
-                    CodePushUtils.log("Applying patch: " + patchFileName + " to " + modifiedFile);
-                    BsPatch.patch(oldFile, patchFile, tempFile);
-                    
-                    // Replace old file with patched file
-                    oldFile.delete();
-                    tempFile.renameTo(oldFile);
-                    
-                    CodePushUtils.log("Patch applied successfully: " + modifiedFile);
-                } else {
-                    CodePushUtils.log("Patch file or target not found: " + patchFileName);
-                }
-            }
         } catch (JSONException e) {
-            throw new CodePushUnknownException("Unable to process diff manifest", e);
+            throw new CodePushUnknownException("Unable to copy files from current package during diff update", e);
         }
     }
 
@@ -217,34 +184,9 @@ public class CodePushUpdateUtils {
 
         // The JSON serialization turns path separators into "\/", e.g. "CodePush\/assets\/image.png"
         String updateContentsManifestString = updateContentsJSONArray.toString().replace("\\/", "/");
-        
-        CodePushUtils.log("=== MANIFEST COMPARISON DEBUG ===");
-        CodePushUtils.log("Manifest string length: " + updateContentsManifestString.length());
-        CodePushUtils.log("Manifest entries count: " + updateContentsManifest.size());
-        CodePushUtils.log("First 500 chars: " + updateContentsManifestString.substring(0, Math.min(500, updateContentsManifestString.length())));
-        
-        // Write full manifest to file for debugging
-        try {
-            java.io.File manifestDebugFile = new java.io.File(folderPath + "_manifest_debug.txt");
-            java.io.FileWriter writer = new java.io.FileWriter(manifestDebugFile);
-            writer.write(updateContentsManifestString);
-            writer.close();
-            CodePushUtils.log("Full manifest written to: " + manifestDebugFile.getAbsolutePath());
-        } catch (Exception e) {
-            CodePushUtils.log("Failed to write manifest debug file: " + e.getMessage());
-        }
         CodePushUtils.log("Manifest string: " + updateContentsManifestString);
 
-        String updateContentsManifestHash;
-        try {
-            updateContentsManifestHash = computeHash(new ByteArrayInputStream(updateContentsManifestString.getBytes("UTF-8")));
-        } catch (java.io.UnsupportedEncodingException e) {
-            // UTF-8 is always supported
-            throw new CodePushInvalidUpdateException("UTF-8 encoding not supported: " + e.getMessage());
-        }
-        
-        CodePushUtils.log("=== MANIFEST HASH CALCULATION ===");
-        CodePushUtils.log("Computed manifest hash: " + updateContentsManifestHash);
+        String updateContentsManifestHash = computeHash(new ByteArrayInputStream(updateContentsManifestString.getBytes()));
 
         CodePushUtils.log("Expected hash: " + expectedHash + ", actual hash: " + updateContentsManifestHash);
         if (!expectedHash.equals(updateContentsManifestHash)) {

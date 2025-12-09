@@ -257,7 +257,7 @@ public class CodePushUpdateManager {
             boolean isDiffUpdate = FileUtils.fileAtPathExists(diffManifestFilePath);
             if (isDiffUpdate) {
                 String currentPackageFolderPath = getCurrentPackageFolderPath();
-                CodePushUpdateUtils.copyNecessaryFilesFromCurrentPackage(diffManifestFilePath, currentPackageFolderPath, newUpdateFolderPath, unzippedFolderPath);
+                CodePushUpdateUtils.copyNecessaryFilesFromCurrentPackage(diffManifestFilePath, currentPackageFolderPath, newUpdateFolderPath);
                 File diffManifestFile = new File(diffManifestFilePath);
                 diffManifestFile.delete();
             }

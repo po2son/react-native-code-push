@@ -28,16 +28,6 @@ module.exports = (NativeCodePush) => {
           const updatePackageCopy = Object.assign({}, this);
           Object.keys(updatePackageCopy).forEach((key) => (typeof updatePackageCopy[key] === 'function') && delete updatePackageCopy[key]);
 
-          // Log patches for debugging multi-patch updates
-          if (updatePackageCopy.patches && Array.isArray(updatePackageCopy.patches)) {
-            log(`[CodePush] Multi-patch update detected: ${updatePackageCopy.patches.length} patches from ${updatePackageCopy.current_label} to ${updatePackageCopy.label}`);
-            updatePackageCopy.patches.forEach((patch, idx) => {
-              log(`[CodePush] Patch ${idx + 1}: ${patch.from_label} -> ${patch.to_label} (${patch.size} bytes)`);
-            });
-          } else {
-            log(`[CodePush] Single update: ${updatePackageCopy.label}`);
-          }
-
           const downloadedPackage = await NativeCodePush.downloadUpdate(updatePackageCopy, !!downloadProgressCallback);
 
           if (reportStatusDownload) {

@@ -8,7 +8,6 @@ import org.json.JSONObject;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -257,7 +256,7 @@ public class CodePushUpdateManager {
             boolean isDiffUpdate = FileUtils.fileAtPathExists(diffManifestFilePath);
             if (isDiffUpdate) {
                 String currentPackageFolderPath = getCurrentPackageFolderPath();
-                CodePushUpdateUtils.copyNecessaryFilesFromCurrentPackage(diffManifestFilePath, currentPackageFolderPath, newUpdateFolderPath, unzippedFolderPath);
+                CodePushUpdateUtils.copyNecessaryFilesFromCurrentPackage(diffManifestFilePath, currentPackageFolderPath, newUpdateFolderPath);
                 File diffManifestFile = new File(diffManifestFilePath);
                 diffManifestFile.delete();
             }
@@ -342,31 +341,10 @@ public class CodePushUpdateManager {
             String currentPackageFolderPath = getCurrentPackageFolderPath();
             String workingFolderPath = CodePushUtils.appendPathComponent(tempWorkingPath, "working");
             new File(workingFolderPath).mkdirs();
-
-            // DEBUG: Check current package
-            CodePushUtils.log("=== BASE PACKAGE DEBUG ===");
-            CodePushUtils.log("currentPackageFolderPath: " + currentPackageFolderPath);
-            if (currentPackageFolderPath != null && FileUtils.fileAtPathExists(currentPackageFolderPath)) {
-                File currentDir = new File(currentPackageFolderPath);
-                File[] currentFiles = currentDir.listFiles();
-                CodePushUtils.log("Current package files: " + 
-                    (currentFiles != null ? currentFiles.length : 0) + " items");
-            } else {
-                CodePushUtils.log("Current package: NOT FOUND");
-            }
             
             if (currentPackageFolderPath != null && FileUtils.fileAtPathExists(currentPackageFolderPath)) {
                 CodePushUtils.log("Copying current package as base for multi-patch update");
                 FileUtils.copyDirectoryContents(currentPackageFolderPath, workingFolderPath);
-
-            // DEBUG: Verify working folder after base copy
-            File workingDirAfterCopy = new File(workingFolderPath);
-            if (workingDirAfterCopy.exists()) {
-                File[] workingFilesAfterCopy = workingDirAfterCopy.listFiles();
-                CodePushUtils.log("=== AFTER BASE COPY ===");
-                CodePushUtils.log("Working folder files: " + 
-                    (workingFilesAfterCopy != null ? workingFilesAfterCopy.length : 0) + " items");
-            }
             }
 
             // Apply each patch sequentially
@@ -385,7 +363,6 @@ public class CodePushUpdateManager {
                 String patchUrl = patch.optString("url", null);
                 String fromLabel = patch.optString("from_label", "");
                 String toLabel = patch.optString("to_label", "");
-                String patchHash = patch.optString("hash", null);
                 long patchSize = patch.optLong("size", 0);
 
                 CodePushUtils.log("Applying patch " + (i + 1) + "/" + totalPatches + ": " + fromLabel + " -> " + toLabel);
@@ -393,18 +370,6 @@ public class CodePushUpdateManager {
                 // Download patch
                 File patchFile = downloadSinglePatch(patchUrl, i, progressCallback, totalBytesReceived, totalBytesExpected);
                 totalBytesReceived += patchSize;
-                
-                // Verify patch file hash
-                if (patchHash != null) {
-                    CodePushUtils.log("Verifying patch file hash...");
-                    String actualPatchHash = CodePushUpdateUtils.computeHash(new FileInputStream(patchFile));
-                    if (!patchHash.equals(actualPatchHash)) {
-                        throw new CodePushInvalidUpdateException(
-                            "Patch file hash mismatch. Expected: " + patchHash + ", Actual: " + actualPatchHash
-                        );
-                    }
-                    CodePushUtils.log("Patch file hash verified successfully");
-                }
 
                 // Unzip patch to temporary folder
                 String patchUnzipPath = CodePushUtils.appendPathComponent(tempWorkingPath, "patch_" + i);
@@ -422,84 +387,25 @@ public class CodePushUpdateManager {
                 
                 new File(tempResultPath).mkdirs();
                 
-                String diffManifestPath = CodePushUtils.appendPathComponent(patchUnzipPath, CodePushConstants.DIFF_MANIFEST_FILE_NAME);
-                
+
                 // DEBUG: Check if diff manifest exists
                 CodePushUtils.log("=== DIFF MANIFEST CHECK ===");
                 CodePushUtils.log("diffManifestPath: " + diffManifestPath);
                 CodePushUtils.log("Exists: " + FileUtils.fileAtPathExists(diffManifestPath));
-                
+                String diffManifestPath = CodePushUtils.appendPathComponent(patchUnzipPath, CodePushConstants.DIFF_MANIFEST_FILE_NAME);
                 if (FileUtils.fileAtPathExists(diffManifestPath)) {
-                    // Copy working folder to temp result, apply diff
-                    CodePushUpdateUtils.copyNecessaryFilesFromCurrentPackage(diffManifestPath, workingFolderPath, tempResultPath, patchUnzipPath);
-                    
-                    // Copy new/modified files from patch (excluding .patch files and manifest)
-                    File patchDir = new File(patchUnzipPath);
-                    File[] patchDirFiles = patchDir.listFiles();
-                    if (patchDirFiles != null) {
-                        for (File patchDirFile : patchDirFiles) {
-                            String fileName = patchDirFile.getName();
-                            // Skip .patch files and hotcodepush.json (already processed)
-                            if (!fileName.endsWith(".patch") && 
-                                !fileName.equals(CodePushConstants.DIFF_MANIFEST_FILE_NAME)) {
-                                File dest = new File(tempResultPath, fileName);
-                                if (patchDirFile.isDirectory()) {
-                                    FileUtils.copyDirectoryContents(patchDirFile.getAbsolutePath(), dest.getAbsolutePath());
-                                } else {
-                                    // Copy single file
-                                    dest.getParentFile().mkdirs();
-                                    FileInputStream fis = new FileInputStream(patchDirFile);
-                                    FileOutputStream fos = new FileOutputStream(dest);
-                                    byte[] buffer = new byte[8192];
-                                    int bytesRead;
-                                    while ((bytesRead = fis.read(buffer)) != -1) {
-                                        fos.write(buffer, 0, bytesRead);
-                                    }
-                                    fis.close();
-                                    fos.close();
-                                }
-                            }
-                        }
-                    }
-                    
+                    // Copy working folder to temp result, apply diff, then merge patch
+                    CodePushUpdateUtils.copyNecessaryFilesFromCurrentPackage(diffManifestPath, workingFolderPath, tempResultPath);
                     new File(diffManifestPath).delete();
                 } else {
                     // No diff manifest, just copy working folder
                     FileUtils.copyDirectoryContents(workingFolderPath, tempResultPath);
-                    
-                    // Merge patch contents
-                    FileUtils.copyDirectoryContents(patchUnzipPath, tempResultPath);
                 }
-                
-                // Clean up temporary files (.patch, .json, etc)
-                File tempResultDir = new File(tempResultPath);
-                if (tempResultDir.exists()) {
-                    File[] files = tempResultDir.listFiles();
-                    if (files != null) {
-                        for (File file : files) {
-                            String fileName = file.getName();
-                            // Delete .patch files and hotcodepush.json
-                            if (fileName.endsWith(".patch") || 
-                                fileName.equals("hotcodepush.json") ||
-                                fileName.equals(CodePushConstants.DIFF_MANIFEST_FILE_NAME)) {
-                                CodePushUtils.log("Deleting temporary file: " + fileName);
-                                file.delete();
-                            }
-                        }
-                    }
-                }
-                
+
+                // Merge patch contents into temp result
+                FileUtils.copyDirectoryContents(patchUnzipPath, tempResultPath);
                 FileUtils.deleteDirectoryAtPath(patchUnzipPath);
                 
-
-                // DEBUG: Check tempResult before copy to working
-                File tempResultDirBeforeCopy = new File(tempResultPath);
-                if (tempResultDirBeforeCopy.exists()) {
-                    File[] tempResultFiles = tempResultDirBeforeCopy.listFiles();
-                    CodePushUtils.log("=== BEFORE COPY TO WORKING ===");
-                    CodePushUtils.log("tempResult files: " + 
-                        (tempResultFiles != null ? tempResultFiles.length : 0) + " items");
-                }
                 // Replace working folder with result
                 FileUtils.deleteDirectoryAtPath(workingFolderPath);
                 new File(workingFolderPath).mkdirs();
@@ -540,42 +446,28 @@ public class CodePushUpdateManager {
                 throw new CodePushInvalidUpdateException("Update is invalid - A JS bundle file named \"" + expectedBundleFileName + "\" could not be found within the downloaded contents.");
             }
 
-            // Multi-patch: skip final hash verification (already verified each patch)
-            // Single-patch: verify hash and signature below
-            boolean isMultiPatch = updatePackage.has("patches");
+            // Verify hash and signature
             String newUpdateHash = updatePackage.optString(CodePushConstants.PACKAGE_HASH_KEY, null);
             boolean isSignatureVerificationEnabled = (stringPublicKey != null);
             String signaturePath = CodePushUpdateUtils.getSignatureFilePath(finalUpdateFolderPath);
             boolean isSignaturePresent = FileUtils.fileAtPathExists(signaturePath);
 
-            if (!isMultiPatch) {
-                // Single-patch: verify full package hash
-                if (isSignatureVerificationEnabled) {
-                    if (isSignaturePresent) {
-                        CodePushUpdateUtils.verifyFolderHash(finalUpdateFolderPath, newUpdateHash);
-                        CodePushUpdateUtils.verifyUpdateSignature(finalUpdateFolderPath, newUpdateHash, stringPublicKey);
-                    } else {
-                        throw new CodePushInvalidUpdateException("Error! Public key was provided but there is no JWT signature within app bundle to verify.");
-                    }
-                } else {
-                    if (isSignaturePresent) {
-                        CodePushUtils.log("Warning! JWT signature exists but no public key configured.");
-                    }
+            if (isSignatureVerificationEnabled) {
+                if (isSignaturePresent) {
                     CodePushUpdateUtils.verifyFolderHash(finalUpdateFolderPath, newUpdateHash);
+                    CodePushUpdateUtils.verifyUpdateSignature(finalUpdateFolderPath, newUpdateHash, stringPublicKey);
+                } else {
+                    throw new CodePushInvalidUpdateException("Error! Public key was provided but there is no JWT signature within app bundle to verify.");
                 }
             } else {
-                CodePushUtils.log("Multi-patch update: skipping final hash verification (patches already verified)");
+                if (isSignaturePresent) {
+                    CodePushUtils.log("Warning! JWT signature exists but no public key configured.");
+                }
+                CodePushUpdateUtils.verifyFolderHash(finalUpdateFolderPath, newUpdateHash);
             }
 
             // Save metadata
             CodePushUtils.setJSONValueForKey(updatePackage, CodePushConstants.RELATIVE_BUNDLE_PATH_KEY, relativeBundlePath);
-
-            // DEBUG: Log update completion
-            CodePushUtils.log("=== UPDATE COMPLETION DEBUG ===");
-            CodePushUtils.log("finalUpdateFolderPath: " + finalUpdateFolderPath);
-            CodePushUtils.log("finalUpdateMetadataPath: " + finalUpdateMetadataPath);
-            CodePushUtils.log("updatePackage label: " + updatePackage.optString("label", "unknown"));
-            CodePushUtils.log("Metadata saved successfully");
             CodePushUtils.writeJsonToFile(updatePackage, finalUpdateMetadataPath);
 
             CodePushUtils.log("Multi-patch update completed successfully!");
@@ -620,12 +512,6 @@ public class CodePushUpdateManager {
 
             long patchBytes = connection.getContentLength();
             long receivedBytes = 0;
-
-            // DEBUG: Download info
-            CodePushUtils.log("=== DOWNLOAD DEBUG ===");
-            CodePushUtils.log("URL: " + patchUrl);
-            CodePushUtils.log("Expected size: " + patchBytes + " bytes");
-            CodePushUtils.log("HTTP Status: " + connection.getResponseCode());
 
             File downloadFolder = new File(getCodePushPath());
             File downloadFile = new File(downloadFolder, "patch_" + patchIndex + ".zip");

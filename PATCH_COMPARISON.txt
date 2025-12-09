@@ -1,0 +1,386 @@
+# CodePush 패치 업데이트 시각화 가이드
+
+## 📌 핵심 비교: 싱글 패치 vs 멀티 패치
+
+---
+
+## 1️⃣ 싱글 패치 플로우 (기존 방식)
+
+```mermaid
+flowchart TD
+    A[앱 시작: v1.0.10] --> B[서버 업데이트 체크]
+    B --> C{patches 배열 있나?}
+    C -->|없음| D[download_url 사용]
+    
+    D --> E[단일 패치 다운로드]
+    E --> F[압축 해제]
+    F --> G{Full or Diff?}
+    
+    G -->|Diff| H[현재 패키지 복사]
+    H --> I[deletedFiles 삭제]
+    I --> J[새 파일 병합]
+    
+    G -->|Full| J
+    
+    J --> K[해시 검증]
+    K --> L[서명 검증]
+    L --> M[메타데이터 저장]
+    M --> N[앱 재시작]
+    N --> O[업데이트 완료!]
+    
+    style A fill:#e1f5ff
+    style O fill:#c8e6c9
+    style D fill:#fff9c4
+    style N fill:#ffccbc
+```
+
+### 🔍 싱글 패치 특징
+- ✅ **간단한 로직**: 한 번에 하나의 패치만 처리
+- ✅ **안정적**: 검증된 방식
+- ❌ **재시작 많음**: v1.0.10 → v1.0.11 → v1.0.12 → ... (각각 재시작)
+- ❌ **사용자 경험 나쁨**: 5번 업데이트면 5번 재시작
+
+---
+
+## 2️⃣ 멀티 패치 플로우 (신규 구현)
+
+```mermaid
+flowchart TD
+    A[앱 시작: v1.0.10] --> B[서버 업데이트 체크]
+    B --> C{patches 배열 있나?}
+    C -->|있음!| D[downloadAndApplyMultiplePatches 호출]
+    
+    D --> E[임시 작업 폴더 생성<br/>temp_multi_patch/]
+    E --> F[현재 패키지 복사<br/>→ workingFolder]
+    F --> G[전체 패치 크기 계산]
+    
+    G --> H[패치 순차 처리 시작]
+    
+    H --> I1[Patch 1 다운로드<br/>v1.0.10 → v1.0.11]
+    I1 --> I2[압축 해제]
+    I2 --> I3[tempResult 생성]
+    I3 --> I4[diff 적용]
+    I4 --> I5[새 파일 병합]
+    I5 --> I6[workingFolder 교체]
+    
+    I6 --> J1[Patch 2 다운로드<br/>v1.0.11 → v1.0.12]
+    J1 --> J2[압축 해제]
+    J2 --> J3[tempResult 생성]
+    J3 --> J4[diff 적용]
+    J4 --> J5[새 파일 병합]
+    J5 --> J6[workingFolder 교체]
+    
+    J6 --> K1[Patch 3, 4, 5...<br/>계속 반복]
+    
+    K1 --> L[최종 workingFolder<br/>→ finalUpdateFolder]
+    L --> M[해시 검증]
+    M --> N[서명 검증]
+    N --> O[메타데이터 저장]
+    O --> P[임시 폴더 정리]
+    P --> Q[앱 재시작 1회!]
+    Q --> R[v1.0.15 완료! 🎉]
+    
+    style A fill:#e1f5ff
+    style R fill:#c8e6c9
+    style D fill:#fff59d
+    style H fill:#ffccbc
+    style Q fill:#ffccbc
+```
+
+### 🔍 멀티 패치 특징
+- ✅ **재시작 1회**: 모든 패치를 다운로드 → 병합 → 한 번만 재시작
+- ✅ **사용자 경험 좋음**: 30초 대기 후 바로 최신 버전
+- ✅ **효율적**: 중간 버전 실행 안 함
+- ⚠️ **메모리 사용**: 작업 공간 필요
+- ⚠️ **복잡한 로직**: 에러 처리 중요
+
+---
+
+## 3️⃣ 핵심 차이점: 재시작 횟수 비교
+
+```mermaid
+gantt
+    title 기존 vs 신규 업데이트 시간 비교 (v1.0.10 → v1.0.15)
+    dateFormat mm:ss
+    axisFormat %M:%S
+    
+    section 기존 방식
+    v1.0.10→v1.0.11 다운 :done, a1, 00:00, 5s
+    재시작 1 :crit, a2, after a1, 20s
+    v1.0.11→v1.0.12 다운 :done, a3, after a2, 5s
+    재시작 2 :crit, a4, after a3, 20s
+    v1.0.12→v1.0.13 다운 :done, a5, after a4, 5s
+    재시작 3 :crit, a6, after a5, 20s
+    v1.0.13→v1.0.14 다운 :done, a7, after a6, 5s
+    재시작 4 :crit, a8, after a7, 20s
+    v1.0.14→v1.0.15 다운 :done, a9, after a8, 5s
+    재시작 5 :crit, a10, after a9, 20s
+    
+    section 신규 방식
+    모든 패치 다운+병합 :done, b1, 00:00, 30s
+    재시작 1회 :crit, b2, after b1, 20s
+```
+
+### 📊 시간 비교
+| 방식 | 다운로드 시간 | 재시작 횟수 | 총 소요 시간 | 사용자 대기 |
+|------|--------------|-------------|--------------|-------------|
+| 기존 | 5초 × 5회 = 25초 | **5회** | **약 125초** | 😡 매우 나쁨 |
+| 신규 | 25초 (한번에) | **1회** | **약 50초** | 😊 좋음 |
+
+---
+
+## 4️⃣ 작업 폴더 구조 변화
+
+```mermaid
+graph LR
+    subgraph "Before 다운로드 전"
+        A1[CodePush/<br/>old_hash/<br/>v1.0.10]
+    end
+    
+    subgraph "During 다운로드 중"
+        B1[temp_multi_patch/<br/>workingFolder]
+        B2[temp_multi_patch/<br/>patch_0/]
+        B3[temp_multi_patch/<br/>result_0/]
+        B4[temp_multi_patch/<br/>patch_1/]
+        B5[temp_multi_patch/<br/>result_1/]
+        
+        B1 --> B2
+        B2 --> B3
+        B3 --> B1
+        B1 --> B4
+        B4 --> B5
+        B5 --> B1
+    end
+    
+    subgraph "After 완료 후"
+        C1[CodePush/<br/>new_hash/<br/>v1.0.15]
+        C2[CodePush/<br/>old_hash/<br/>v1.0.10<br/>롤백용]
+    end
+    
+    A1 -.복사.-> B1
+    B1 -.최종 이동.-> C1
+    A1 -.보존.-> C2
+    
+    style A1 fill:#e3f2fd
+    style C1 fill:#c8e6c9
+    style C2 fill:#fff9c4
+```
+
+---
+
+## 5️⃣ 핵심 코드 흐름: downloadPackage()
+
+```mermaid
+flowchart TD
+    A[downloadPackage 시작] --> B{patches 배열<br/>체크}
+    
+    B -->|있음| C[downloadAndApplyMultiplePatches<br/>호출]
+    B -->|없음| D[기존 로직<br/>단일 패치 처리]
+    
+    C --> C1[임시 폴더 생성]
+    C1 --> C2[currentPackage 복사]
+    C2 --> C3[FOR LOOP 시작]
+    
+    C3 --> C4[downloadSinglePatch<br/>다운로드]
+    C4 --> C5[압축 해제]
+    C5 --> C6[tempResult 생성]
+    C6 --> C7[diff 적용<br/>deletedFiles 삭제]
+    C7 --> C8[새 파일 병합]
+    C8 --> C9[workingFolder 교체]
+    
+    C9 --> C10{다음 패치<br/>있나?}
+    C10 -->|있음| C4
+    C10 -->|없음| C11[최종 이동]
+    
+    C11 --> E[검증]
+    D --> E
+    
+    E --> F[해시 검증]
+    F --> G[서명 검증]
+    G --> H[메타데이터 저장]
+    H --> I[완료!]
+    
+    style A fill:#e1f5ff
+    style C fill:#fff59d
+    style D fill:#ffccbc
+    style I fill:#c8e6c9
+```
+
+---
+
+## 6️⃣ 에러 처리 및 복구
+
+```mermaid
+flowchart TD
+    A[다중 패치 시작] --> B[try 블록]
+    
+    B --> C{패치 처리<br/>성공?}
+    
+    C -->|성공| D[검증 완료]
+    D --> E[메타데이터 저장]
+    E --> F[finally:<br/>임시 폴더 정리]
+    F --> G[완료!]
+    
+    C -->|실패| H[catch:<br/>에러 발생]
+    H --> I[최종 폴더 삭제]
+    I --> J[finally:<br/>임시 폴더 정리]
+    J --> K[Exception throw]
+    K --> L[기존 버전 유지<br/>롤백]
+    
+    style A fill:#e1f5ff
+    style G fill:#c8e6c9
+    style H fill:#ffcdd2
+    style L fill:#fff9c4
+```
+
+### 🛡️ 안전장치
+1. **try-catch-finally**: 모든 에러 처리
+2. **임시 폴더 정리**: finally에서 항상 실행
+3. **원자적 작업**: 최종 이동 전까지 기존 버전 유지
+4. **롤백 가능**: previousPackage 보존
+
+---
+
+## 7️⃣ 서버 응답 구조
+
+### 싱글 패치 응답
+```json
+{
+  "update_info": {
+    "download_url": "https://server/v1.0.11/diff.zip",
+    "package_hash": "abc123",
+    "label": "v1.0.11",
+    "is_mandatory": true
+  }
+}
+```
+
+### 멀티 패치 응답 (신규)
+```json
+{
+  "update_info": {
+    "download_url": "https://server/v1.0.15/full.zip",
+    "package_hash": "xyz789",
+    "label": "v1.0.15",
+    "is_mandatory": true,
+    
+    "current_label": "v1.0.10",
+    "patches": [
+      {
+        "from_label": "v1.0.10",
+        "to_label": "v1.0.11",
+        "url": "https://server/v1.0.11/diff.zip",
+        "hash": "aaa111",
+        "size": 12345
+      },
+      {
+        "from_label": "v1.0.11",
+        "to_label": "v1.0.12",
+        "url": "https://server/v1.0.12/diff.zip",
+        "hash": "bbb222",
+        "size": 23456
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 8️⃣ 체크포인트: 어디서 분기되나?
+
+```mermaid
+graph TD
+    A[CodePushUpdateManager.java<br/>Line 146] --> B[downloadPackage 메서드]
+    
+    B --> C[Line 159:<br/>JSONArray patches =<br/>updatePackage.optJSONArray]
+    
+    C --> D{Line 160:<br/>patches != null &&<br/>patches.length > 0?}
+    
+    D -->|YES<br/>멀티 패치| E[Line 164:<br/>downloadAndApplyMultiplePatches<br/>호출]
+    
+    D -->|NO<br/>싱글 패치| F[Line 170-320:<br/>기존 로직 실행]
+    
+    E --> G[Line 323:<br/>downloadAndApplyMultiplePatches<br/>메서드 시작]
+    
+    G --> H[새로운 멀티 패치 로직]
+    
+    F --> I[기존 단일 패치 로직]
+    
+    style D fill:#fff59d
+    style E fill:#c8e6c9
+    style F fill:#ffccbc
+```
+
+### 📍 핵심 라인
+- **Line 159-167**: patches 배열 체크 (분기점)
+- **Line 323-425**: downloadAndApplyMultiplePatches() 구현
+- **Line 427-499**: downloadSinglePatch() 구현
+- **Line 170-320**: 기존 싱글 패치 로직 (유지)
+
+---
+
+## 9️⃣ 실제 사용 예시
+
+### 시나리오: v1.0.10 → v1.0.15 업데이트
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant A as 앱
+    participant S as 서버
+    participant N as Native
+    
+    U->>A: 앱 실행
+    A->>S: 업데이트 체크<br/>(current: v1.0.10)
+    S->>A: patches[] 5개 반환
+    
+    Note over A: patches 배열 감지!
+    
+    A->>N: downloadPackage(patches)
+    
+    Note over N: 멀티 패치 모드
+    
+    N->>S: patch1 다운로드
+    S->>N: v1.0.11 diff
+    Note over N: workingFolder = v1.0.11
+    
+    N->>S: patch2 다운로드
+    S->>N: v1.0.12 diff
+    Note over N: workingFolder = v1.0.12
+    
+    N->>S: patch3, 4, 5 다운로드
+    S->>N: diff files
+    Note over N: workingFolder = v1.0.15
+    
+    N->>N: 검증 완료
+    N->>A: 다운로드 완료
+    A->>U: "업데이트 완료<br/>재시작할까요?"
+    U->>A: 재시작
+    A->>A: v1.0.15 로드
+    A->>U: 최신 버전 실행! 🎉
+```
+
+---
+
+## 🎯 요약: 왜 멀티 패치가 좋은가?
+
+| 항목 | 싱글 패치 | 멀티 패치 |
+|------|----------|----------|
+| **재시작** | 5번 😡 | 1번 😊 |
+| **사용자 대기** | 2분+ | 50초 |
+| **중간 버전 실행** | 4번 | 0번 |
+| **네트워크 비용** | 동일 | 동일 |
+| **디스크 I/O** | 많음 | 중간 |
+| **복잡도** | 낮음 | 중간 |
+| **안정성** | 높음 | 높음 (에러 처리 완료) |
+
+### ✅ 결론
+**멀티 패치는 사용자 경험을 극적으로 개선하면서도 안정성을 유지합니다!**
+
+---
+
+## 📚 참고 문서
+- `HANDOFF.md`: 상세 구현 내용
+- `FLOW.txt`: 전체 플로우 (텍스트)
+- `TODO.md`: iOS 작업 항목

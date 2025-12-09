@@ -257,7 +257,7 @@ public class CodePushUpdateManager {
             boolean isDiffUpdate = FileUtils.fileAtPathExists(diffManifestFilePath);
             if (isDiffUpdate) {
                 String currentPackageFolderPath = getCurrentPackageFolderPath();
-                CodePushUpdateUtils.copyNecessaryFilesFromCurrentPackage(diffManifestFilePath, currentPackageFolderPath, newUpdateFolderPath, unzippedFolderPath);
+                CodePushUpdateUtils.copyNecessaryFilesFromCurrentPackage(diffManifestFilePath, currentPackageFolderPath, newUpdateFolderPath);
                 File diffManifestFile = new File(diffManifestFilePath);
                 diffManifestFile.delete();
             }
@@ -430,8 +430,8 @@ public class CodePushUpdateManager {
                 CodePushUtils.log("Exists: " + FileUtils.fileAtPathExists(diffManifestPath));
                 
                 if (FileUtils.fileAtPathExists(diffManifestPath)) {
-                    // Copy working folder to temp result, apply diff
-                    CodePushUpdateUtils.copyNecessaryFilesFromCurrentPackage(diffManifestPath, workingFolderPath, tempResultPath, patchUnzipPath);
+                    // Copy working folder to temp result, apply diff, then merge patch
+                    CodePushUpdateUtils.copyNecessaryFilesFromCurrentPackage(diffManifestPath, workingFolderPath, tempResultPath);
                     
                     // Copy new/modified files from patch (excluding .patch files and manifest)
                     File patchDir = new File(patchUnzipPath);
