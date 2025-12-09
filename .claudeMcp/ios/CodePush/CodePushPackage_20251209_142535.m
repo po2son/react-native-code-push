@@ -875,9 +875,58 @@ static NSString *const UnzippedFolderName = @"unzipped";
                 return;
             }
             
-            // Multi-patch: skip final folder hash verification (already verified each patch's diff.zip hash)
-            // The server provides package_hash for storage, not for verification
-            CPLog(@"Multi-patch update: skipping final hash verification (patches already verified)");
+            // Verify hash and signature
+            NSString *newUpdateHash = updatePackage[@"packageHash"];
+            BOOL isSignatureVerificationEnabled = (publicKey != nil);
+            NSString *signatureFilePath = [CodePushUpdateUtils getSignatureFilePath:finalUpdateFolderPath];
+            BOOL isSignaturePresent = [fileManager fileExistsAtPath:signatureFilePath];
+            
+            if (isSignatureVerificationEnabled) {
+                if (isSignaturePresent) {
+                    if (![CodePushUpdateUtils verifyFolderHash:finalUpdateFolderPath
+                                                 expectedHash:newUpdateHash
+                                                        error:&error]) {
+                        CPLog(@"The update contents failed the data integrity check.");
+                        if (!error) {
+                            error = [CodePushErrorUtils errorWithMessage:@"The update contents failed the data integrity check."];
+                        }
+                        dispatch_async(dispatch_get_main_queue(), ^{ failCallback(error); });
+                        return;
+                    }
+                    
+                    BOOL isSignatureValid = [CodePushUpdateUtils verifyUpdateSignatureFor:finalUpdateFolderPath
+                                                                             expectedHash:newUpdateHash
+                                                                            withPublicKey:publicKey
+                                                                                    error:&error];
+                    if (!isSignatureValid) {
+                        CPLog(@"The update contents failed code signing check.");
+                        if (!error) {
+                            error = [CodePushErrorUtils errorWithMessage:@"The update contents failed code signing check."];
+                        }
+                        dispatch_async(dispatch_get_main_queue(), ^{ failCallback(error); });
+                        return;
+                    }
+                } else {
+                    error = [CodePushErrorUtils errorWithMessage:
+                             @"Error! Public key was provided but there is no JWT signature within app bundle to verify."];
+                    dispatch_async(dispatch_get_main_queue(), ^{ failCallback(error); });
+                    return;
+                }
+            } else {
+                if (isSignaturePresent) {
+                    CPLog(@"Warning! JWT signature exists but no public key configured.");
+                }
+                if (![CodePushUpdateUtils verifyFolderHash:finalUpdateFolderPath
+                                             expectedHash:newUpdateHash
+                                                    error:&error]) {
+                    CPLog(@"The update contents failed the data integrity check.");
+                    if (!error) {
+                        error = [CodePushErrorUtils errorWithMessage:@"The update contents failed the data integrity check."];
+                    }
+                    dispatch_async(dispatch_get_main_queue(), ^{ failCallback(error); });
+                    return;
+                }
+            }
             
             // Save metadata
             NSMutableDictionary *mutableUpdatePackage = [updatePackage mutableCopy];

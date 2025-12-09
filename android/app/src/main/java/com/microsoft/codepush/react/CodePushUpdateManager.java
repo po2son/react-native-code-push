@@ -345,7 +345,7 @@ public class CodePushUpdateManager {
 
             // DEBUG: Check current package
             CodePushUtils.log("=== BASE PACKAGE DEBUG ===");
-            CodePushUtils.log("currentPackageFolderPath: " + currentPackageFolderPath);
+            // CodePushUtils.log("currentPackageFolderPath: " + currentPackageFolderPath);
             if (currentPackageFolderPath != null && FileUtils.fileAtPathExists(currentPackageFolderPath)) {
                 File currentDir = new File(currentPackageFolderPath);
                 File[] currentFiles = currentDir.listFiles();
@@ -396,14 +396,14 @@ public class CodePushUpdateManager {
                 
                 // Verify patch file hash
                 if (patchHash != null) {
-                    CodePushUtils.log("Verifying patch file hash...");
+                    // CodePushUtils.log("Verifying patch file hash...");
                     String actualPatchHash = CodePushUpdateUtils.computeHash(new FileInputStream(patchFile));
                     if (!patchHash.equals(actualPatchHash)) {
                         throw new CodePushInvalidUpdateException(
                             "Patch file hash mismatch. Expected: " + patchHash + ", Actual: " + actualPatchHash
                         );
                     }
-                    CodePushUtils.log("Patch file hash verified successfully");
+                    // CodePushUtils.log("Patch file hash verified successfully");
                 }
 
                 // Unzip patch to temporary folder
@@ -415,19 +415,19 @@ public class CodePushUpdateManager {
                 String tempResultPath = CodePushUtils.appendPathComponent(tempWorkingPath, "result_" + i);
                 
                 // DEBUG: Log paths
-                CodePushUtils.log("=== PATH DEBUG ===");
-                CodePushUtils.log("tempWorkingPath: " + tempWorkingPath);
-                CodePushUtils.log("workingFolderPath: " + workingFolderPath);
-                CodePushUtils.log("tempResultPath: " + tempResultPath);
+                // CodePushUtils.log("=== PATH DEBUG ===");
+                // CodePushUtils.log("tempWorkingPath: " + tempWorkingPath);
+                // CodePushUtils.log("workingFolderPath: " + workingFolderPath);
+                // CodePushUtils.log("tempResultPath: " + tempResultPath);
                 
                 new File(tempResultPath).mkdirs();
                 
                 String diffManifestPath = CodePushUtils.appendPathComponent(patchUnzipPath, CodePushConstants.DIFF_MANIFEST_FILE_NAME);
                 
                 // DEBUG: Check if diff manifest exists
-                CodePushUtils.log("=== DIFF MANIFEST CHECK ===");
-                CodePushUtils.log("diffManifestPath: " + diffManifestPath);
-                CodePushUtils.log("Exists: " + FileUtils.fileAtPathExists(diffManifestPath));
+                // CodePushUtils.log("=== DIFF MANIFEST CHECK ===");
+                // CodePushUtils.log("diffManifestPath: " + diffManifestPath);
+                // CodePushUtils.log("Exists: " + FileUtils.fileAtPathExists(diffManifestPath));
                 
                 if (FileUtils.fileAtPathExists(diffManifestPath)) {
                     // Copy working folder to temp result, apply diff
@@ -482,7 +482,7 @@ public class CodePushUpdateManager {
                             if (fileName.endsWith(".patch") || 
                                 fileName.equals("hotcodepush.json") ||
                                 fileName.equals(CodePushConstants.DIFF_MANIFEST_FILE_NAME)) {
-                                CodePushUtils.log("Deleting temporary file: " + fileName);
+                                // CodePushUtils.log("Deleting temporary file: " + fileName);
                                 file.delete();
                             }
                         }
@@ -496,8 +496,8 @@ public class CodePushUpdateManager {
                 File tempResultDirBeforeCopy = new File(tempResultPath);
                 if (tempResultDirBeforeCopy.exists()) {
                     File[] tempResultFiles = tempResultDirBeforeCopy.listFiles();
-                    CodePushUtils.log("=== BEFORE COPY TO WORKING ===");
-                    CodePushUtils.log("tempResult files: " + 
+                    // CodePushUtils.log("=== BEFORE COPY TO WORKING ===");
+                    // CodePushUtils.log("tempResult files: " + 
                         (tempResultFiles != null ? tempResultFiles.length : 0) + " items");
                 }
                 // Replace working folder with result
@@ -510,13 +510,13 @@ public class CodePushUpdateManager {
                 File workingDir = new File(workingFolderPath);
                 if (workingDir.exists()) {
                     File[] workingFiles = workingDir.listFiles();
-                    CodePushUtils.log("=== Working folder files after patch " + (i+1) + ": " + 
+                    // CodePushUtils.log("=== Working folder files after patch " + (i+1) + ": " + 
                         (workingFiles != null ? workingFiles.length : 0) + " items");
                 }
             }
 
             // Move final result to target location
-            CodePushUtils.log("Moving final multi-patch result to: " + finalUpdateFolderPath);
+            // CodePushUtils.log("Moving final multi-patch result to: " + finalUpdateFolderPath);
             new File(finalUpdateFolderPath).mkdirs();
             FileUtils.copyDirectoryContents(workingFolderPath, finalUpdateFolderPath);
 
