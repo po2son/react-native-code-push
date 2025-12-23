@@ -96,9 +96,6 @@ public class CodePush implements ReactPackage {
         String serverUrlFromStrings = getCustomPropertyFromStringsIfExist("ServerUrl");
         if (serverUrlFromStrings != null) mServerUrl = serverUrlFromStrings;
 
-        String appIdFromStrings = getCustomPropertyFromStringsIfExist("AppId");
-        if (appIdFromStrings != null) mAppId = appIdFromStrings;
-
         // ignore liveReload when CodePush is initializing so that unneccessary cache could be cleared
         clearDebugCacheIfNeeded(false);
         initializeUpdateAfterRestart();
@@ -281,10 +278,6 @@ public class CodePush implements ReactPackage {
 
     public String getServerUrl() {
         return mServerUrl;
-    }
-
-    public String getAppId() {
-        return mAppId;
     }
 
     void initializeUpdateAfterRestart() {

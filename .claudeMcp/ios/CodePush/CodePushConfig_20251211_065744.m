@@ -99,11 +99,6 @@ static NSString * const AppIdConfigKey = @"appId";
     return [_configDictionary objectForKey:PublicKeyKey];
 }
 
-- (NSString *)appId
-{
-    return [_configDictionary objectForKey:AppIdConfigKey];
-}
-
 - (void)setAppVersion:(NSString *)appVersion
 {
     [_configDictionary setValue:appVersion forKey:AppVersionConfigKey];

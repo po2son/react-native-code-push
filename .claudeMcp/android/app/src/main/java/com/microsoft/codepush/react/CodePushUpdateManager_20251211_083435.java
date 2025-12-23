@@ -498,7 +498,7 @@ public class CodePushUpdateManager {
                     File[] tempResultFiles = tempResultDirBeforeCopy.listFiles();
                     // CodePushUtils.log("=== BEFORE COPY TO WORKING ===");
                     // CodePushUtils.log("tempResult files: " + 
-                    //     (tempResultFiles != null ? tempResultFiles.length : 0) + " items");
+                        (tempResultFiles != null ? tempResultFiles.length : 0) + " items");
                 }
                 // Replace working folder with result
                 FileUtils.deleteDirectoryAtPath(workingFolderPath);
@@ -511,7 +511,7 @@ public class CodePushUpdateManager {
                 if (workingDir.exists()) {
                     File[] workingFiles = workingDir.listFiles();
                     // CodePushUtils.log("=== Working folder files after patch " + (i+1) + ": " + 
-                    //     (workingFiles != null ? workingFiles.length : 0) + " items");
+                        (workingFiles != null ? workingFiles.length : 0) + " items");
                 }
             }
 

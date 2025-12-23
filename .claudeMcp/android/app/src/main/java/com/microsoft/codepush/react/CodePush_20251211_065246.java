@@ -283,10 +283,6 @@ public class CodePush implements ReactPackage {
         return mServerUrl;
     }
 
-    public String getAppId() {
-        return mAppId;
-    }
-
     void initializeUpdateAfterRestart() {
         // Reset the state which indicates that
         // the app was just freshly updated.

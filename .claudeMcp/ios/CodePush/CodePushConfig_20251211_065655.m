@@ -59,7 +59,6 @@ static NSString * const AppIdConfigKey = @"appId";
     if (clientUniqueId) [_configDictionary setObject:clientUniqueId forKey:ClientUniqueIDConfigKey];
     if (deploymentKey) [_configDictionary setObject:deploymentKey forKey:DeploymentKeyConfigKey];
     if (publicKey) [_configDictionary setObject:publicKey forKey:PublicKeyKey];
-    if (appId) [_configDictionary setObject:appId forKey:AppIdConfigKey];
 
     return self;
 }
@@ -97,11 +96,6 @@ static NSString * const AppIdConfigKey = @"appId";
 - (NSString *)publicKey
 {
     return [_configDictionary objectForKey:PublicKeyKey];
-}
-
-- (NSString *)appId
-{
-    return [_configDictionary objectForKey:AppIdConfigKey];
 }
 
 - (void)setAppVersion:(NSString *)appVersion

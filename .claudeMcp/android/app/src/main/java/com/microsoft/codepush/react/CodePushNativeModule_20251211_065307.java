@@ -511,12 +511,6 @@ public class CodePushNativeModule extends BaseJavaModule {
             configMap.putString("deploymentKey", mCodePush.getDeploymentKey());
             configMap.putString("serverUrl", mCodePush.getServerUrl());
 
-            // Add appId if configured
-            String appId = mCodePush.getAppId();
-            if (appId != null) {
-                configMap.putString("appId", appId);
-            }
-
             // The binary hash may be null in debug builds
             if (mBinaryContentsHash != null) {
                 configMap.putString(CodePushConstants.PACKAGE_HASH_KEY, mBinaryContentsHash);

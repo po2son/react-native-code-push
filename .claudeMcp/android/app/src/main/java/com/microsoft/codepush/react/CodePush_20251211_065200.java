@@ -51,7 +51,6 @@ public class CodePush implements ReactPackage {
     // Config properties.
     private String mDeploymentKey;
     private static String mServerUrl = "https://server.recodepush.com/";
-    private static String mAppId = null;
 
     private Context mContext;
     private final boolean mIsDebugMode;
@@ -95,9 +94,6 @@ public class CodePush implements ReactPackage {
 
         String serverUrlFromStrings = getCustomPropertyFromStringsIfExist("ServerUrl");
         if (serverUrlFromStrings != null) mServerUrl = serverUrlFromStrings;
-
-        String appIdFromStrings = getCustomPropertyFromStringsIfExist("AppId");
-        if (appIdFromStrings != null) mAppId = appIdFromStrings;
 
         // ignore liveReload when CodePush is initializing so that unneccessary cache could be cleared
         clearDebugCacheIfNeeded(false);
@@ -281,10 +277,6 @@ public class CodePush implements ReactPackage {
 
     public String getServerUrl() {
         return mServerUrl;
-    }
-
-    public String getAppId() {
-        return mAppId;
     }
 
     void initializeUpdateAfterRestart() {
