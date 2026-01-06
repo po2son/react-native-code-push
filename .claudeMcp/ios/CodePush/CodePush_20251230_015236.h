@@ -104,7 +104,6 @@
 @property (copy) NSString *serverURL;
 @property (copy) NSString *publicKey;
 @property (readonly) NSString *appId;
-@property (readonly) NSString *baseHash;
 
 + (instancetype)current;
 

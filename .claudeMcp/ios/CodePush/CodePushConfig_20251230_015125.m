@@ -14,7 +14,6 @@ static NSString * const DeploymentKeyConfigKey = @"deploymentKey";
 static NSString * const ServerURLConfigKey = @"serverUrl";
 static NSString * const PublicKeyKey = @"publicKey";
 static NSString * const AppIdConfigKey = @"appId";
-static NSString * const BaseHashConfigKey = @"baseHash";
 
 + (instancetype)current
 {
@@ -39,7 +38,6 @@ static NSString * const BaseHashConfigKey = @"baseHash";
     NSString *serverURL = [infoDictionary objectForKey:@"CodePushServerURL"];
     NSString *publicKey = [infoDictionary objectForKey:@"CodePushPublicKey"];
     NSString *appId = [infoDictionary objectForKey:@"CodePushAppId"];
-    NSString *baseHash = [infoDictionary objectForKey:@"CodePushBaseHash"];
     
     NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
     NSString *clientUniqueId = [userDefaults stringForKey:ClientUniqueIDConfigKey];
@@ -62,7 +60,6 @@ static NSString * const BaseHashConfigKey = @"baseHash";
     if (deploymentKey) [_configDictionary setObject:deploymentKey forKey:DeploymentKeyConfigKey];
     if (publicKey) [_configDictionary setObject:publicKey forKey:PublicKeyKey];
     if (appId) [_configDictionary setObject:appId forKey:AppIdConfigKey];
-    if (baseHash) [_configDictionary setObject:baseHash forKey:BaseHashConfigKey];
 
     return self;
 }
@@ -105,11 +102,6 @@ static NSString * const BaseHashConfigKey = @"baseHash";
 - (NSString *)appId
 {
     return [_configDictionary objectForKey:AppIdConfigKey];
-}
-
-- (NSString *)baseHash
-{
-    return [_configDictionary objectForKey:BaseHashConfigKey];
 }
 
 - (void)setAppVersion:(NSString *)appVersion

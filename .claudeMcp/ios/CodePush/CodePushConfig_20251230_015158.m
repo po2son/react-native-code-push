@@ -62,7 +62,6 @@ static NSString * const BaseHashConfigKey = @"baseHash";
     if (deploymentKey) [_configDictionary setObject:deploymentKey forKey:DeploymentKeyConfigKey];
     if (publicKey) [_configDictionary setObject:publicKey forKey:PublicKeyKey];
     if (appId) [_configDictionary setObject:appId forKey:AppIdConfigKey];
-    if (baseHash) [_configDictionary setObject:baseHash forKey:BaseHashConfigKey];
 
     return self;
 }
@@ -105,11 +104,6 @@ static NSString * const BaseHashConfigKey = @"baseHash";
 - (NSString *)appId
 {
     return [_configDictionary objectForKey:AppIdConfigKey];
-}
-
-- (NSString *)baseHash
-{
-    return [_configDictionary objectForKey:BaseHashConfigKey];
 }
 
 - (void)setAppVersion:(NSString *)appVersion

@@ -107,11 +107,6 @@ static NSString * const BaseHashConfigKey = @"baseHash";
     return [_configDictionary objectForKey:AppIdConfigKey];
 }
 
-- (NSString *)baseHash
-{
-    return [_configDictionary objectForKey:BaseHashConfigKey];
-}
-
 - (void)setAppVersion:(NSString *)appVersion
 {
     [_configDictionary setValue:appVersion forKey:AppVersionConfigKey];

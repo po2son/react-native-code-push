@@ -694,17 +694,12 @@ static NSString *const UnzippedFolderName = @"unzipped";
             NSString *firstPatchHash = firstPatch[@"hash"];
             long long firstPatchSize = [firstPatch[@"size"] longLongValue];
             
-            NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-            [formatter setDateFormat:@"HH:mm:ss.SSS"];
-            CPLog(@"[%@] Start download - totalBytesExpected: %lld bytes", [formatter stringFromDate:[NSDate date]], totalBytesExpected);
-            
             NSString *firstPatchFilePath = [self downloadSinglePatchSync:firstPatchUrl
                                                              patchIndex:0
                                                        progressCallback:progressCallback
                                                      bytesReceivedSoFar:0
                                                      totalBytesExpected:totalBytesExpected
                                                                   error:&error];
-            CPLog(@"[%@] Finished download", [formatter stringFromDate:[NSDate date]]);
             if (error || !firstPatchFilePath) {
                 if (!error) {
                     error = [CodePushErrorUtils errorWithMessage:@"Failed to download first patch"];
@@ -961,9 +956,6 @@ static NSString *const UnzippedFolderName = @"unzipped";
                 return;
             }
             
-            NSDateFormatter *finishFormatter = [[NSDateFormatter alloc] init];
-            [finishFormatter setDateFormat:@"HH:mm:ss.SSS"];
-            CPLog(@"[%@] Patch finished - downloaded: %lld bytes", [finishFormatter stringFromDate:[NSDate date]], totalBytesReceived);
             CPLog(@"Multi-patch update completed successfully!");
             dispatch_async(dispatch_get_main_queue(), ^{ doneCallback(); });
             
@@ -982,96 +974,6 @@ static NSString *const UnzippedFolderName = @"unzipped";
             }
         }
     });
-}
-
-/**
- * Apply a single patch (diff) to the working folder.
- * Extracted as helper method to be reused by both individual and bundled patch modes.
- */
-+ (void)applyPatchToWorkingFolder:(NSString *)patchUnzipPath
-                workingFolderPath:(NSString *)workingFolderPath
-                  tempWorkingPath:(NSString *)tempWorkingPath
-                       patchIndex:(NSInteger)patchIndex
-                      fileManager:(NSFileManager *)fileManager
-                            error:(NSError **)error
-{
-    // Apply diff to a temporary result folder
-    NSString *tempResultPath = [tempWorkingPath stringByAppendingPathComponent:
-                               [NSString stringWithFormat:@"result_%ld", (long)patchIndex]];
-    [fileManager createDirectoryAtPath:tempResultPath
-           withIntermediateDirectories:YES
-                            attributes:nil
-                                 error:error];
-    if (*error) return;
-    
-    NSString *diffManifestPath = [patchUnzipPath stringByAppendingPathComponent:DiffManifestFileName];
-    if ([fileManager fileExistsAtPath:diffManifestPath]) {
-        // Copy working folder contents to temp result, apply deletions
-        NSArray *workingContents = [fileManager contentsOfDirectoryAtPath:workingFolderPath error:error];
-        if (*error) return;
-        
-        for (NSString *item in workingContents) {
-            NSString *srcPath = [workingFolderPath stringByAppendingPathComponent:item];
-            NSString *dstPath = [tempResultPath stringByAppendingPathComponent:item];
-            [fileManager copyItemAtPath:srcPath toPath:dstPath error:error];
-            if (*error) return;
-        }
-        
-        // Read diff manifest and delete files
-        NSString *manifestContent = [NSString stringWithContentsOfFile:diffManifestPath
-                                                              encoding:NSUTF8StringEncoding
-                                                                 error:error];
-        if (*error) return;
-        
-        NSData *data = [manifestContent dataUsingEncoding:NSUTF8StringEncoding];
-        NSDictionary *manifestJSON = [NSJSONSerialization JSONObjectWithData:data
-                                                                     options:kNilOptions
-                                                                       error:error];
-        if (*error) return;
-        
-        NSArray *deletedFiles = manifestJSON[@"deletedFiles"];
-        for (NSString *deletedFileName in deletedFiles) {
-            NSString *absoluteDeletedFilePath = [tempResultPath stringByAppendingPathComponent:deletedFileName];
-            if ([fileManager fileExistsAtPath:absoluteDeletedFilePath]) {
-                [fileManager removeItemAtPath:absoluteDeletedFilePath error:nil];
-            }
-        }
-        
-        [fileManager removeItemAtPath:diffManifestPath error:nil];
-    } else {
-        // No diff manifest, just copy working folder to temp result
-        NSArray *workingContents = [fileManager contentsOfDirectoryAtPath:workingFolderPath error:error];
-        if (!*error) {
-            for (NSString *item in workingContents) {
-                NSString *srcPath = [workingFolderPath stringByAppendingPathComponent:item];
-                NSString *dstPath = [tempResultPath stringByAppendingPathComponent:item];
-                [fileManager copyItemAtPath:srcPath toPath:dstPath error:nil];
-            }
-        }
-    }
-    
-    // Merge patch contents into temp result
-    [CodePushUpdateUtils copyEntriesInFolder:patchUnzipPath
-                                  destFolder:tempResultPath
-                                       error:error];
-    if (*error) return;
-    
-    // Replace working folder with result
-    // Clear working folder first
-    NSArray *oldContents = [fileManager contentsOfDirectoryAtPath:workingFolderPath error:nil];
-    for (NSString *item in oldContents) {
-        [fileManager removeItemAtPath:[workingFolderPath stringByAppendingPathComponent:item] error:nil];
-    }
-    
-    // Copy temp result to working folder
-    NSArray *resultContents = [fileManager contentsOfDirectoryAtPath:tempResultPath error:nil];
-    for (NSString *item in resultContents) {
-        NSString *srcPath = [tempResultPath stringByAppendingPathComponent:item];
-        NSString *dstPath = [workingFolderPath stringByAppendingPathComponent:item];
-        [fileManager copyItemAtPath:srcPath toPath:dstPath error:nil];
-    }
-    
-    [fileManager removeItemAtPath:tempResultPath error:nil];
 }
 
 + (NSString *)downloadSinglePatchSync:(NSString *)patchUrl

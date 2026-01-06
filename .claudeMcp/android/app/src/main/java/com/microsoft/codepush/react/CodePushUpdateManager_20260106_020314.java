@@ -389,7 +389,6 @@ public class CodePushUpdateManager {
             // Download first patch
             CodePushUtils.log("[" + new java.text.SimpleDateFormat("HH:mm:ss.SSS").format(new java.util.Date()) + "] Start download - totalBytesExpected: " + totalBytesExpected + " bytes");
             File firstPatchFile = downloadSinglePatch(firstPatchUrl, 0, progressCallback, 0, totalBytesExpected);
-            CodePushUtils.log("[" + new java.text.SimpleDateFormat("HH:mm:ss.SSS").format(new java.util.Date()) + "] Finished download");
             totalBytesReceived += firstPatchSize;
 
             // Verify first patch hash
@@ -569,7 +568,6 @@ public class CodePushUpdateManager {
             CodePushUtils.log("Metadata saved successfully");
             CodePushUtils.writeJsonToFile(updatePackage, finalUpdateMetadataPath);
 
-            CodePushUtils.log("[" + new java.text.SimpleDateFormat("HH:mm:ss.SSS").format(new java.util.Date()) + "] Patch finished - downloaded: " + totalBytesReceived + " bytes");
             CodePushUtils.log("Multi-patch update completed successfully!");
 
         } catch (Exception e) {

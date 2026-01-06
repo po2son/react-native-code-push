@@ -704,7 +704,6 @@ static NSString *const UnzippedFolderName = @"unzipped";
                                                      bytesReceivedSoFar:0
                                                      totalBytesExpected:totalBytesExpected
                                                                   error:&error];
-            CPLog(@"[%@] Finished download", [formatter stringFromDate:[NSDate date]]);
             if (error || !firstPatchFilePath) {
                 if (!error) {
                     error = [CodePushErrorUtils errorWithMessage:@"Failed to download first patch"];

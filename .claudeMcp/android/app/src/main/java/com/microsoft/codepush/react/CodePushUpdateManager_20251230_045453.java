@@ -387,9 +387,7 @@ public class CodePushUpdateManager {
             long firstPatchSize = firstPatch.optLong("size", 0);
 
             // Download first patch
-            CodePushUtils.log("[" + new java.text.SimpleDateFormat("HH:mm:ss.SSS").format(new java.util.Date()) + "] Start download - totalBytesExpected: " + totalBytesExpected + " bytes");
             File firstPatchFile = downloadSinglePatch(firstPatchUrl, 0, progressCallback, 0, totalBytesExpected);
-            CodePushUtils.log("[" + new java.text.SimpleDateFormat("HH:mm:ss.SSS").format(new java.util.Date()) + "] Finished download");
             totalBytesReceived += firstPatchSize;
 
             // Verify first patch hash
@@ -569,7 +567,6 @@ public class CodePushUpdateManager {
             CodePushUtils.log("Metadata saved successfully");
             CodePushUtils.writeJsonToFile(updatePackage, finalUpdateMetadataPath);
 
-            CodePushUtils.log("[" + new java.text.SimpleDateFormat("HH:mm:ss.SSS").format(new java.util.Date()) + "] Patch finished - downloaded: " + totalBytesReceived + " bytes");
             CodePushUtils.log("Multi-patch update completed successfully!");
 
         } catch (Exception e) {
@@ -584,84 +581,6 @@ public class CodePushUpdateManager {
                 FileUtils.deleteDirectoryAtPath(tempWorkingPath);
             }
         }
-    }
-
-    /**
-     * Apply a single patch (diff) to the working folder.
-     * Extracted as helper method to be reused by both individual and bundled patch modes.
-     */
-    private void applyPatchToWorkingFolder(String patchUnzipPath, String workingFolderPath, 
-                                           String tempWorkingPath, int patchIndex) throws IOException {
-        // Apply diff to a temporary result folder
-        String tempResultPath = CodePushUtils.appendPathComponent(tempWorkingPath, "result_" + patchIndex);
-        new File(tempResultPath).mkdirs();
-        
-        String diffManifestPath = CodePushUtils.appendPathComponent(patchUnzipPath, CodePushConstants.DIFF_MANIFEST_FILE_NAME);
-        
-        if (FileUtils.fileAtPathExists(diffManifestPath)) {
-            // Copy working folder to temp result, apply diff
-            CodePushUpdateUtils.copyNecessaryFilesFromCurrentPackage(diffManifestPath, workingFolderPath, tempResultPath, patchUnzipPath);
-            
-            // Copy new/modified files from patch (excluding .patch files and manifest)
-            File patchDir = new File(patchUnzipPath);
-            File[] patchDirFiles = patchDir.listFiles();
-            if (patchDirFiles != null) {
-                for (File patchDirFile : patchDirFiles) {
-                    String fileName = patchDirFile.getName();
-                    // Skip .patch files and hotcodepush.json (already processed)
-                    if (!fileName.endsWith(".patch") && 
-                        !fileName.equals(CodePushConstants.DIFF_MANIFEST_FILE_NAME)) {
-                        File dest = new File(tempResultPath, fileName);
-                        if (patchDirFile.isDirectory()) {
-                            FileUtils.copyDirectoryContents(patchDirFile.getAbsolutePath(), dest.getAbsolutePath());
-                        } else {
-                            // Copy single file
-                            dest.getParentFile().mkdirs();
-                            FileInputStream fis = new FileInputStream(patchDirFile);
-                            FileOutputStream fos = new FileOutputStream(dest);
-                            byte[] buffer = new byte[8192];
-                            int bytesRead;
-                            while ((bytesRead = fis.read(buffer)) != -1) {
-                                fos.write(buffer, 0, bytesRead);
-                            }
-                            fis.close();
-                            fos.close();
-                        }
-                    }
-                }
-            }
-            
-            new File(diffManifestPath).delete();
-        } else {
-            // No diff manifest, just copy working folder
-            FileUtils.copyDirectoryContents(workingFolderPath, tempResultPath);
-            
-            // Merge patch contents
-            FileUtils.copyDirectoryContents(patchUnzipPath, tempResultPath);
-        }
-        
-        // Clean up temporary files (.patch, .json, etc)
-        File tempResultDir = new File(tempResultPath);
-        if (tempResultDir.exists()) {
-            File[] files = tempResultDir.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    String fileName = file.getName();
-                    // Delete .patch files and hotcodepush.json
-                    if (fileName.endsWith(".patch") || 
-                        fileName.equals("hotcodepush.json") ||
-                        fileName.equals(CodePushConstants.DIFF_MANIFEST_FILE_NAME)) {
-                        file.delete();
-                    }
-                }
-            }
-        }
-        
-        // Replace working folder with result
-        FileUtils.deleteDirectoryAtPath(workingFolderPath);
-        new File(workingFolderPath).mkdirs();
-        FileUtils.copyDirectoryContents(tempResultPath, workingFolderPath);
-        FileUtils.deleteDirectoryAtPath(tempResultPath);
     }
 
     private File downloadSinglePatch(String patchUrl, int patchIndex,

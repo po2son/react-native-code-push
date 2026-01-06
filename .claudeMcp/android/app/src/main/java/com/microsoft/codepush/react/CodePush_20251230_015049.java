@@ -100,9 +100,6 @@ public class CodePush implements ReactPackage {
         String appIdFromStrings = getCustomPropertyFromStringsIfExist("AppId");
         if (appIdFromStrings != null) mAppId = appIdFromStrings;
 
-        String baseHashFromStrings = getCustomPropertyFromStringsIfExist("BaseHash");
-        if (baseHashFromStrings != null) mBaseHash = baseHashFromStrings;
-
         // ignore liveReload when CodePush is initializing so that unneccessary cache could be cleared
         clearDebugCacheIfNeeded(false);
         initializeUpdateAfterRestart();
@@ -289,10 +286,6 @@ public class CodePush implements ReactPackage {
 
     public String getAppId() {
         return mAppId;
-    }
-
-    public String getBaseHash() {
-        return mBaseHash;
     }
 
     void initializeUpdateAfterRestart() {

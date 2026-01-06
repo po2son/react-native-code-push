@@ -517,12 +517,6 @@ public class CodePushNativeModule extends BaseJavaModule {
                 configMap.putString("appId", appId);
             }
 
-            // Add baseHash if configured (for first OTA diff support)
-            String baseHash = mCodePush.getBaseHash();
-            if (baseHash != null) {
-                configMap.putString("baseHash", baseHash);
-            }
-
             // The binary hash may be null in debug builds
             if (mBinaryContentsHash != null) {
                 configMap.putString(CodePushConstants.PACKAGE_HASH_KEY, mBinaryContentsHash);

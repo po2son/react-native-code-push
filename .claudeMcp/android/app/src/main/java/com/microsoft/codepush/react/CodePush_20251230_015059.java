@@ -291,10 +291,6 @@ public class CodePush implements ReactPackage {
         return mAppId;
     }
 
-    public String getBaseHash() {
-        return mBaseHash;
-    }
-
     void initializeUpdateAfterRestart() {
         // Reset the state which indicates that
         // the app was just freshly updated.

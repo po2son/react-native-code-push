@@ -704,7 +704,6 @@ static NSString *const UnzippedFolderName = @"unzipped";
                                                      bytesReceivedSoFar:0
                                                      totalBytesExpected:totalBytesExpected
                                                                   error:&error];
-            CPLog(@"[%@] Finished download", [formatter stringFromDate:[NSDate date]]);
             if (error || !firstPatchFilePath) {
                 if (!error) {
                     error = [CodePushErrorUtils errorWithMessage:@"Failed to download first patch"];
@@ -961,9 +960,6 @@ static NSString *const UnzippedFolderName = @"unzipped";
                 return;
             }
             
-            NSDateFormatter *finishFormatter = [[NSDateFormatter alloc] init];
-            [finishFormatter setDateFormat:@"HH:mm:ss.SSS"];
-            CPLog(@"[%@] Patch finished - downloaded: %lld bytes", [finishFormatter stringFromDate:[NSDate date]], totalBytesReceived);
             CPLog(@"Multi-patch update completed successfully!");
             dispatch_async(dispatch_get_main_queue(), ^{ doneCallback(); });
             
