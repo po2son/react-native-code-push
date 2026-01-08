@@ -720,11 +720,6 @@ public class CodePushUpdateManager {
                 }
             }
 
-            // Flush before checking
-            bout.flush();
-            
-            CodePushUtils.log("Download complete - received: " + receivedBytes + " bytes, expected: " + patchBytes + " bytes");
-            
             if (patchBytes != -1 && patchBytes != receivedBytes) {
                 throw new CodePushUnknownException("Received " + receivedBytes + " bytes, expected " + patchBytes);
             }

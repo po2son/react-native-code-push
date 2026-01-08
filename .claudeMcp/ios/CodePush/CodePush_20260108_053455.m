@@ -1107,31 +1107,6 @@ RCT_EXPORT_METHOD(saveStatusReportForRetry:(NSDictionary *)statusReport)
     [CodePushTelemetryManager saveStatusReportForRetry:statusReport];
 }
 
-RCT_EXPORT_METHOD(updateLocalPackageLabel:(NSString *)newLabel
-                  resolve:(RCTPromiseResolveBlock)resolve
-                  reject:(RCTPromiseRejectBlock)reject)
-{
-    NSError *error;
-    NSMutableDictionary *currentPackage = [[CodePushPackage getCurrentPackage:&error] mutableCopy];
-    if (error) {
-        reject(@"GET_PACKAGE_ERROR", error.localizedDescription, error);
-        return;
-    }
-    
-    if (currentPackage) {
-        currentPackage[@"label"] = newLabel;
-        [CodePushPackage updateCurrentPackageInfo:currentPackage error:&error];
-        if (error) {
-            reject(@"UPDATE_LABEL_ERROR", error.localizedDescription, error);
-            return;
-        }
-        CPLog(@"Label updated to: %@", newLabel);
-        resolve(nil);
-    } else {
-        reject(@"NO_PACKAGE", @"No current package to update label", nil);
-    }
-}
-
 #pragma mark - RCTFrameUpdateObserver Methods
 
 - (void)didUpdateFrame:(RCTFrameUpdate *)update

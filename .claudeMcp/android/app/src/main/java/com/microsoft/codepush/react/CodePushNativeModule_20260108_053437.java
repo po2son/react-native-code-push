@@ -872,7 +872,7 @@ public class CodePushNativeModule extends BaseJavaModule {
         try {
             JSONObject currentPackage = mUpdateManager.getCurrentPackage();
             if (currentPackage != null) {
-                currentPackage.put("label", newLabel);
+                currentPackage.put(CodePushConstants.LABEL_KEY, newLabel);
                 mUpdateManager.updateCurrentPackageInfo(currentPackage);
                 CodePushUtils.log("Label updated to: " + newLabel);
                 promise.resolve(null);

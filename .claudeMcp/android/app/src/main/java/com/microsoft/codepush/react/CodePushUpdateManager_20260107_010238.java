@@ -675,13 +675,8 @@ public class CodePushUpdateManager {
         try {
             URL downloadUrl = new URL(patchUrl);
             connection = (HttpURLConnection) downloadUrl.openConnection();
-            
-            // Set timeouts for large file downloads
-            connection.setConnectTimeout(30000);  // 30초 연결 타임아웃
-            connection.setReadTimeout(300000);    // 5분 읽기 타임아웃 (대용량 파일용)
 
             if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP &&
-                downloadUrl.toString().startsWith("https")) {
                 downloadUrl.toString().startsWith("https")) {
                 try {
                     ((HttpsURLConnection)connection).setSSLSocketFactory(new TLSSocketFactory());
@@ -720,11 +715,6 @@ public class CodePushUpdateManager {
                 }
             }
 
-            // Flush before checking
-            bout.flush();
-            
-            CodePushUtils.log("Download complete - received: " + receivedBytes + " bytes, expected: " + patchBytes + " bytes");
-            
             if (patchBytes != -1 && patchBytes != receivedBytes) {
                 throw new CodePushUnknownException("Received " + receivedBytes + " bytes, expected " + patchBytes);
             }

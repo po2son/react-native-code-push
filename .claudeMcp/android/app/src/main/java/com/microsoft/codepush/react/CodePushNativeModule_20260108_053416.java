@@ -867,23 +867,6 @@ public class CodePushNativeModule extends BaseJavaModule {
         // Remove upstream listeners, stop unnecessary background tasks
     }
 
-    @ReactMethod
-    public void updateLocalPackageLabel(String newLabel, Promise promise) {
-        try {
-            JSONObject currentPackage = mUpdateManager.getCurrentPackage();
-            if (currentPackage != null) {
-                currentPackage.put("label", newLabel);
-                mUpdateManager.updateCurrentPackageInfo(currentPackage);
-                CodePushUtils.log("Label updated to: " + newLabel);
-                promise.resolve(null);
-            } else {
-                promise.reject("NO_PACKAGE", "No current package to update label");
-            }
-        } catch (Exception e) {
-            promise.reject("UPDATE_LABEL_ERROR", e.getMessage());
-        }
-    }
-
     public ReactHostDelegate getReactHostDelegate(ReactHostImpl reactHostImpl) {
         try {
             Class<?> clazz = reactHostImpl.getClass();

@@ -71,6 +71,7 @@ async function checkForUpdate(deploymentKey = null, handleBinaryVersionMismatchC
    *    version, which we can't do yet on Android.
    */
   if (!update || update.updateAppVersion ||
+      localPackage && (update.packageHash === localPackage.packageHash) ||
       (!localPackage || localPackage._isDebugOnly) && config.packageHash === update.packageHash) {
     if (update && update.updateAppVersion) {
       log("An update is available but it is not targeting the binary version of your app.");
@@ -79,14 +80,6 @@ async function checkForUpdate(deploymentKey = null, handleBinaryVersionMismatchC
       }
     }
 
-    return null;
-  } else if (localPackage && (update.packageHash === localPackage.packageHash)) {
-    // Hash is same but label might be different (e.g., rollback scenario)
-    // Sync label without downloading
-    if (update.label && update.label !== localPackage.label) {
-      log(`Syncing label only: ${localPackage.label} -> ${update.label} (same content)`);
-      await NativeCodePush.updateLocalPackageLabel(update.label);
-    }
     return null;
   } else {
     const remotePackage = { ...update, ...PackageMixins.remote(sdk.reportStatusDownload) };
